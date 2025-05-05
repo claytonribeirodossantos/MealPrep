@@ -24,7 +24,7 @@ def buscar_endereco_nominatim(query):
         "q": query,
         "format": "json",
         "addressdetails": 1,
-        "limit": 3
+        "limit": 5
     }
     headers = {
         "User-Agent": "MealPrepUSA/1.0"
@@ -53,31 +53,37 @@ aba = st.sidebar.radio("📁 Ações", ["🔍 Buscar e Editar Cliente", "➕ Adi
 # =================== BUSCA COM EDIÇÃO ===================
 if aba == "🔍 Buscar e Editar Cliente":
     st.subheader("🔍 Buscar Cliente com Autocompletar")
-    
+
     nome_digitado = st.text_input("Digite o nome do cliente")
-    sugestoes = [nome for nome in clientes.keys() if nome.lower().startswith(nome_digitado.lower())] if nome_digitado else []
+
+    sugestoes = []
+    if nome_digitado:
+        sugestoes = [nome for nome in clientes.keys() if nome.lower().startswith(nome_digitado.lower())]
 
     if sugestoes:
         nome_escolhido = st.selectbox("Selecione o cliente", sugestoes)
         endereco_atual = clientes[nome_escolhido]
 
         st.markdown("#### ✏️ Editar Cliente")
-        novo_nome = st.text_input("Nome do cliente", value=nome_escolhido)
-        novo_endereco = st.text_input("Endereço", value=endereco_atual)
+        novo_nome = st.text_input("Nome do cliente", value=nome_escolhido, key="editar_nome")
+        novo_endereco_digitado = st.text_input("Digite novo endereço", value=endereco_atual, key="editar_endereco")
+
+        sugestoes_end = buscar_endereco_nominatim(novo_endereco_digitado) if novo_endereco_digitado else []
+        endereco_final = st.selectbox("Sugestões de endereço:", sugestoes_end) if sugestoes_end else novo_endereco_digitado
 
         col1, col2 = st.columns(2)
         with col1:
             if st.button("💾 Salvar Alterações"):
                 clientes.pop(nome_escolhido)
-                clientes[novo_nome] = novo_endereco
+                clientes[novo_nome] = endereco_final
                 salvar_clientes(clientes)
-                st.success(f"Cliente '{nome_escolhido}' atualizado para '{novo_nome}' com sucesso!")
+                st.success(f"Cliente '{nome_escolhido}' atualizado com sucesso!")
 
         with col2:
             if st.button("🗑️ Excluir Cliente"):
                 clientes.pop(nome_escolhido)
                 salvar_clientes(clientes)
-                st.warning(f"Cliente '{nome_escolhido}' foi excluído com sucesso!")
+                st.warning(f"Cliente '{nome_escolhido}' excluído!")
 
 # =================== ADICIONAR NOVO ===================
 elif aba == "➕ Adicionar Cliente":
@@ -86,10 +92,10 @@ elif aba == "➕ Adicionar Cliente":
     with col1:
         nome_novo = st.text_input("Nome do novo cliente")
     with col2:
-        endereco_digitado = st.text_input("Endereço (digite para sugestões)")
+        endereco_digitado = st.text_input("Digite o endereço")
 
     sugestoes_end = buscar_endereco_nominatim(endereco_digitado) if endereco_digitado else []
-    endereco_final = st.selectbox("Endereços sugeridos:", sugestoes_end) if sugestoes_end else endereco_digitado
+    endereco_final = st.selectbox("Sugestões de endereço:", sugestoes_end) if sugestoes_end else endereco_digitado
 
     if st.button("✅ Cadastrar Cliente", use_container_width=True):
         if nome_novo and endereco_final:
