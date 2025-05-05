@@ -1,124 +1,92 @@
 
 import streamlit as st
 import pandas as pd
-from datetime import date
+import requests
 import os
 
 st.set_page_config(page_title="Meal Prep USA", layout="wide")
 
-# Caminhos
+# ================= CONFIG =================
 CSV_CLIENTES = "clientes.csv"
 
-# Carregar clientes
-if os.path.exists(CSV_CLIENTES):
-    df_clientes = pd.read_csv(CSV_CLIENTES)
-    clientes = dict(zip(df_clientes["Nome"], df_clientes["Endereco"]))
-else:
-    clientes = {}
+# ================= FUNÇÕES AUXILIARES =================
+def carregar_clientes():
+    if os.path.exists(CSV_CLIENTES):
+        df = pd.read_csv(CSV_CLIENTES)
+        return dict(zip(df["Nome"], df["Endereco"]))
+    return {}
 
-# Sabores fixos
-sabores = [
-    "Frango grelhado", "Feijoada", "Strogonoff de frango",
-    "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"
-]
-pedidos = []
+def salvar_clientes(clientes_dict):
+    df = pd.DataFrame(list(clientes_dict.items()), columns=["Nome", "Endereco"])
+    df.to_csv(CSV_CLIENTES, index=False)
 
-# Logo e título
-st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/logo_mealprepusa.jpeg", width=300)
-st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
+def buscar_endereco_nominatim(query):
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        "q": query,
+        "format": "json",
+        "addressdetails": 1,
+        "limit": 3
+    }
+    headers = {
+        "User-Agent": "MealPrepUSA/1.0"
+    }
+    try:
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+        r.raise_for_status()
+        resultados = r.json()
+        return [r["display_name"] for r in resultados]
+    except Exception as e:
+        return []
+
+# ================= INTERFACE =================
+clientes = carregar_clientes()
+
+st.image("https://raw.githubusercontent.com/willianrod/mealprepusa/main/logo_mealprepusa.jpeg", width=300)
+st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Gestão de Clientes - Meal Prep USA</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
-# Menu lateral
-menu = st.sidebar.radio("Menu", ["Cadastrar Pedido", "Resumo de Produção", "Clientes", "Sabores", "Pagamentos"])
+aba = st.sidebar.radio("Ações", ["Buscar Cliente", "Adicionar Cliente", "Excluir Cliente"])
 
-# ============================ PEDIDOS ============================
-if menu == "Cadastrar Pedido":
-    st.subheader("Cadastrar Pedido")
-    if clientes:
-        cliente = st.selectbox("Cliente", list(clientes.keys()))
-        sabor = st.selectbox("Sabor da Marmita", sabores)
-        quantidade = st.number_input("Quantidade", min_value=1, step=1)
-        data_pedido = st.date_input("Data da entrega", value=date.today())
-        if st.button("Registrar Pedido", type="primary"):
-            pedidos.append({
-                "Cliente": cliente, "Sabor": sabor,
-                "Quantidade": quantidade, "Data": data_pedido,
-                "Pago": False, "Entregue": False
-            })
-            st.success("Pedido registrado com sucesso!")
+# ================= BUSCAR CLIENTE =================
+if aba == "Buscar Cliente":
+    nome_busca = st.text_input("Buscar cliente pelo nome")
+    if st.button("Buscar"):
+        if nome_busca in clientes:
+            st.success(f"Endereço de {nome_busca}:")
+            st.info(clientes[nome_busca])
+        else:
+            st.warning("Cliente não encontrado.")
+
+# ================= ADICIONAR CLIENTE =================
+elif aba == "Adicionar Cliente":
+    nome_novo = st.text_input("Nome do novo cliente")
+    endereco_digitado = st.text_input("Digite o endereço")
+
+    sugestoes = []
+    if endereco_digitado:
+        sugestoes = buscar_endereco_nominatim(endereco_digitado)
+
+    if sugestoes:
+        endereco_final = st.selectbox("Selecione o endereço sugerido:", sugestoes)
     else:
-        st.warning("Nenhum cliente cadastrado ainda.")
+        endereco_final = endereco_digitado
 
-# ============================ PRODUÇÃO ============================
-elif menu == "Resumo de Produção":
-    st.subheader("Resumo de Produção por Sabor")
-    if pedidos:
-        df = pd.DataFrame(pedidos)
-        resumo = df.groupby("Sabor")["Quantidade"].sum().reset_index()
-        st.table(resumo)
-    else:
-        st.info("Nenhum pedido registrado ainda.")
-
-# ============================ CLIENTES ============================
-elif menu == "Clientes":
-    st.subheader("Clientes Cadastrados")
-    if clientes:
-        for nome, endereco in clientes.items():
-            st.write(f"- **{nome}**: {endereco}")
-    else:
-        st.info("Nenhum cliente cadastrado ainda.")
-
-    st.markdown("### Adicionar Novo Cliente")
-    novo_nome = st.text_input("Nome do Cliente")
-    novo_endereco = st.text_input("Endereço")
-    if st.button("Adicionar Cliente"):
-        if novo_nome and novo_endereco:
-            clientes[novo_nome] = novo_endereco
-            df = pd.DataFrame(list(clientes.items()), columns=["Nome", "Endereco"])
-            df.to_csv(CSV_CLIENTES, index=False)
-            st.success(f"Cliente {novo_nome} adicionado com sucesso!")
+    if st.button("Salvar Cliente"):
+        if nome_novo and endereco_final:
+            clientes[nome_novo] = endereco_final
+            salvar_clientes(clientes)
+            st.success("Cliente salvo com sucesso!")
         else:
             st.warning("Preencha todos os campos.")
 
-    st.markdown("### Editar Cliente Existente")
-    cliente_editar = st.selectbox("Selecione o cliente", list(clientes.keys()))
-    novo_nome_editar = st.text_input("Novo nome", value=cliente_editar)
-    novo_endereco_editar = st.text_input("Novo endereço", value=clientes[cliente_editar])
-    if st.button("Salvar Alterações"):
-        if novo_nome_editar and novo_endereco_editar:
-            clientes.pop(cliente_editar)
-            clientes[novo_nome_editar] = novo_endereco_editar
-            df = pd.DataFrame(list(clientes.items()), columns=["Nome", "Endereco"])
-            df.to_csv(CSV_CLIENTES, index=False)
-            st.success("Cliente atualizado com sucesso!")
-
-# ============================ SABORES ============================
-elif menu == "Sabores":
-    st.subheader("Sabores Disponíveis")
-    for s in sabores:
-        st.write(f"- {s}")
-    novo_sabor = st.text_input("Novo Sabor")
-    if st.button("Adicionar Sabor"):
-        if novo_sabor:
-            sabores.append(novo_sabor)
-            st.success(f"Sabor '{novo_sabor}' adicionado!")
-        else:
-            st.warning("Informe o nome do sabor.")
-
-# ============================ PAGAMENTOS ============================
-elif menu == "Pagamentos":
-    st.subheader("Controle de Pagamentos e Entregas")
-    if pedidos:
-        df = pd.DataFrame(pedidos)
-        for i, row in df.iterrows():
-            st.markdown(f"### Pedido {i+1}")
-            st.write(f"Cliente: {row['Cliente']}")
-            st.write(f"Sabor: {row['Sabor']}")
-            st.write(f"Quantidade: {row['Quantidade']}")
-            st.write(f"Data: {row['Data']}")
-            pago = st.checkbox("Pago?", value=row["Pago"], key=f"pago_{i}")
-            entregue = st.checkbox("Entregue?", value=row["Entregue"], key=f"entregue_{i}")
-            pedidos[i]["Pago"] = pago
-            pedidos[i]["Entregue"] = entregue
+# ================= EXCLUIR CLIENTE =================
+elif aba == "Excluir Cliente":
+    if clientes:
+        nome_excluir = st.selectbox("Selecione o cliente para excluir", list(clientes.keys()))
+        if st.button("Excluir Cliente"):
+            clientes.pop(nome_excluir)
+            salvar_clientes(clientes)
+            st.success(f"Cliente '{nome_excluir}' excluído com sucesso!")
     else:
-        st.info("Nenhum pedido registrado ainda.")
+        st.info("Nenhum cliente cadastrado.")
