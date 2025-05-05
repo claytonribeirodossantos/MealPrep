@@ -36,57 +36,66 @@ def buscar_endereco_nominatim(query):
         r.raise_for_status()
         resultados = r.json()
         return [r["display_name"] for r in resultados]
-    except Exception as e:
+    except Exception:
         return []
 
 # ================= INTERFACE =================
 clientes = carregar_clientes()
 
-st.image("https://raw.githubusercontent.com/willianrod/mealprepusa/main/logo_mealprepusa.jpeg", width=300)
-st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Gestão de Clientes - Meal Prep USA</h1>", unsafe_allow_html=True)
+st.markdown(
+    '<div style="text-align: center;">'
+    '<img src="https://raw.githubusercontent.com/willianrod/mealprepusa/main/logo_mealprepusa.jpeg" width="200">'
+    '<h1 style="color:#4CAF50;">📋 Gestão de Clientes - Meal Prep USA</h1>'
+    '</div>',
+    unsafe_allow_html=True
+)
 st.markdown("---")
 
-aba = st.sidebar.radio("Ações", ["Buscar Cliente", "Adicionar Cliente", "Excluir Cliente"])
+# Layout com três colunas separadas em cartões
+aba = st.sidebar.radio("📁 Ações", ["🔍 Buscar Cliente", "➕ Adicionar Cliente", "🗑️ Excluir Cliente"])
 
-# ================= BUSCAR CLIENTE =================
-if aba == "Buscar Cliente":
-    nome_busca = st.text_input("Buscar cliente pelo nome")
-    if st.button("Buscar"):
-        if nome_busca in clientes:
-            st.success(f"Endereço de {nome_busca}:")
-            st.info(clientes[nome_busca])
-        else:
-            st.warning("Cliente não encontrado.")
+# =============== BUSCAR ===============
+if aba == "🔍 Buscar Cliente":
+    st.markdown("### 🔍 Buscar Cliente Cadastrado")
+    with st.container():
+        nome_busca = st.text_input("Digite o nome do cliente para buscar")
+        if st.button("Buscar"):
+            if nome_busca in clientes:
+                st.success(f"✅ Endereço encontrado:
 
-# ================= ADICIONAR CLIENTE =================
-elif aba == "Adicionar Cliente":
-    nome_novo = st.text_input("Nome do novo cliente")
-    endereco_digitado = st.text_input("Digite o endereço")
+**{clientes[nome_busca]}**")
+            else:
+                st.warning("⚠️ Cliente não encontrado.")
 
-    sugestoes = []
-    if endereco_digitado:
-        sugestoes = buscar_endereco_nominatim(endereco_digitado)
+# =============== ADICIONAR ===============
+elif aba == "➕ Adicionar Cliente":
+    st.markdown("### ➕ Cadastrar Novo Cliente")
+    with st.container():
+        col1, col2 = st.columns(2)
+        with col1:
+            nome_novo = st.text_input("Nome do novo cliente")
+        with col2:
+            endereco_digitado = st.text_input("Endereço (inicie a digitação para sugestões)")
+        
+        sugestoes = buscar_endereco_nominatim(endereco_digitado) if endereco_digitado else []
+        endereco_final = st.selectbox("Endereços sugeridos:", sugestoes) if sugestoes else endereco_digitado
 
-    if sugestoes:
-        endereco_final = st.selectbox("Selecione o endereço sugerido:", sugestoes)
-    else:
-        endereco_final = endereco_digitado
+        if st.button("💾 Salvar Cliente", use_container_width=True):
+            if nome_novo and endereco_final:
+                clientes[nome_novo] = endereco_final
+                salvar_clientes(clientes)
+                st.success(f"Cliente **{nome_novo}** salvo com sucesso! ✅")
+            else:
+                st.error("Preencha todos os campos.")
 
-    if st.button("Salvar Cliente"):
-        if nome_novo and endereco_final:
-            clientes[nome_novo] = endereco_final
-            salvar_clientes(clientes)
-            st.success("Cliente salvo com sucesso!")
-        else:
-            st.warning("Preencha todos os campos.")
-
-# ================= EXCLUIR CLIENTE =================
-elif aba == "Excluir Cliente":
+# =============== EXCLUIR ===============
+elif aba == "🗑️ Excluir Cliente":
+    st.markdown("### 🗑️ Remover Cliente da Base")
     if clientes:
-        nome_excluir = st.selectbox("Selecione o cliente para excluir", list(clientes.keys()))
-        if st.button("Excluir Cliente"):
+        nome_excluir = st.selectbox("Selecione o cliente a ser removido", list(clientes.keys()))
+        if st.button("❌ Excluir Cliente", type="primary"):
             clientes.pop(nome_excluir)
             salvar_clientes(clientes)
-            st.success(f"Cliente '{nome_excluir}' excluído com sucesso!")
+            st.success(f"Cliente **{nome_excluir}** removido com sucesso!")
     else:
-        st.info("Nenhum cliente cadastrado.")
+        st.info("Nenhum cliente cadastrado ainda.")
