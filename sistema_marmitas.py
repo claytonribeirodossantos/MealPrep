@@ -4,49 +4,34 @@ import pandas as pd
 from datetime import date
 import os
 
-# ========== CONFIGURAÇÕES ==========
 st.set_page_config(page_title="Meal Prep USA", layout="wide")
 
-# ========== LOGIN ==========
-usuarios = {"admin": "1234", "cozinha": "marmita"}
-if "logado" not in st.session_state:
-    st.session_state.logado = False
-
-if not st.session_state.logado:
-    st.image("https://raw.githubusercontent.com/willianrod/mealprepusa/main/logo_mealprepusa.jpeg", width=300)
-    st.title("Login - Meal Prep USA")
-    usuario = st.text_input("Usuário")
-    senha = st.text_input("Senha", type="password")
-    if st.button("Entrar"):
-        if usuario in usuarios and usuarios[usuario] == senha:
-            st.session_state.logado = True
-            st.experimental_rerun()
-        else:
-            st.error("Usuário ou senha incorretos")
-    st.stop()
-
-# ========== DADOS ==========
+# Caminhos
 CSV_CLIENTES = "clientes.csv"
 
+# Carregar clientes
 if os.path.exists(CSV_CLIENTES):
     df_clientes = pd.read_csv(CSV_CLIENTES)
     clientes = dict(zip(df_clientes["Nome"], df_clientes["Endereco"]))
 else:
     clientes = {}
 
+# Sabores fixos
 sabores = [
     "Frango grelhado", "Feijoada", "Strogonoff de frango",
     "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"
 ]
 pedidos = []
 
-# ========== INTERFACE ==========
-st.image("https://raw.githubusercontent.com/willianrod/mealprepusa/main/logo_mealprepusa.jpeg", width=300)
+# Logo e título
+st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/logo_mealprepusa.jpeg", width=300)
 st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
 st.markdown("---")
+
+# Menu lateral
 menu = st.sidebar.radio("Menu", ["Cadastrar Pedido", "Resumo de Produção", "Clientes", "Sabores", "Pagamentos"])
 
-# ========== PEDIDOS ==========
+# ============================ PEDIDOS ============================
 if menu == "Cadastrar Pedido":
     st.subheader("Cadastrar Pedido")
     if clientes:
@@ -64,7 +49,7 @@ if menu == "Cadastrar Pedido":
     else:
         st.warning("Nenhum cliente cadastrado ainda.")
 
-# ========== PRODUÇÃO ==========
+# ============================ PRODUÇÃO ============================
 elif menu == "Resumo de Produção":
     st.subheader("Resumo de Produção por Sabor")
     if pedidos:
@@ -74,7 +59,7 @@ elif menu == "Resumo de Produção":
     else:
         st.info("Nenhum pedido registrado ainda.")
 
-# ========== CLIENTES ==========
+# ============================ CLIENTES ============================
 elif menu == "Clientes":
     st.subheader("Clientes Cadastrados")
     if clientes:
@@ -107,7 +92,7 @@ elif menu == "Clientes":
             df.to_csv(CSV_CLIENTES, index=False)
             st.success("Cliente atualizado com sucesso!")
 
-# ========== SABORES ==========
+# ============================ SABORES ============================
 elif menu == "Sabores":
     st.subheader("Sabores Disponíveis")
     for s in sabores:
@@ -120,7 +105,7 @@ elif menu == "Sabores":
         else:
             st.warning("Informe o nome do sabor.")
 
-# ========== PAGAMENTOS ==========
+# ============================ PAGAMENTOS ============================
 elif menu == "Pagamentos":
     st.subheader("Controle de Pagamentos e Entregas")
     if pedidos:
