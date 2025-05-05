@@ -58,7 +58,8 @@ if aba == "🔍 Buscar e Editar Cliente":
 
     sugestoes = []
     if nome_digitado:
-        sugestoes = [nome for nome in clientes.keys() if nome.lower().startswith(nome_digitado.lower())]
+        nome_digitado = nome_digitado.strip().lower()
+        sugestoes = [nome for nome in clientes.keys() if nome_digitado in nome.lower()]
 
     if sugestoes:
         nome_escolhido = st.selectbox("Selecione o cliente", sugestoes)
