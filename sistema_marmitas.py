@@ -3,7 +3,15 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
-# Inicialização dos dados (poderia ser lido de um arquivo)
+# ============================ CONFIGURAÇÕES ============================
+st.set_page_config(page_title="Meal Prep USA", layout="wide")
+
+# Logo e título
+st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/logo_mealprepusa.jpeg", width=300)
+st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
+st.markdown("---")
+
+# ============================ DADOS INICIAIS ============================
 sabores = [
     "Frango grelhado",
     "Feijoada",
@@ -20,20 +28,18 @@ clientes = {
 
 pedidos = []
 
-st.set_page_config(page_title="Sistema de Marmitas - Interno", layout="wide")
-st.title("Sistema Interno de Gestão de Marmitas")
-
+# ============================ MENU LATERAL ============================
 menu = st.sidebar.radio("Menu", ["Cadastrar Pedido", "Resumo de Produção", "Clientes", "Sabores", "Pagamentos"])
 
-# 1. Cadastrar Pedido
+# ============================ TELA: PEDIDOS ============================
 if menu == "Cadastrar Pedido":
-    st.header("Cadastrar Pedido")
+    st.subheader("Cadastrar Pedido")
     cliente = st.selectbox("Cliente", list(clientes.keys()))
     sabor = st.selectbox("Sabor da Marmita", sabores)
     quantidade = st.number_input("Quantidade", min_value=1, step=1)
     data_pedido = st.date_input("Data da entrega", value=date.today())
 
-    if st.button("Registrar Pedido"):
+    if st.button("Registrar Pedido", type="primary"):
         pedidos.append({
             "Cliente": cliente,
             "Sabor": sabor,
@@ -44,9 +50,9 @@ if menu == "Cadastrar Pedido":
         })
         st.success("Pedido registrado com sucesso!")
 
-# 2. Resumo de Produção
+# ============================ TELA: PRODUÇÃO ============================
 elif menu == "Resumo de Produção":
-    st.header("Resumo de Produção por Sabor")
+    st.subheader("Resumo de Produção por Sabor")
     if pedidos:
         df_pedidos = pd.DataFrame(pedidos)
         resumo = df_pedidos.groupby("Sabor")["Quantidade"].sum().reset_index()
@@ -54,13 +60,13 @@ elif menu == "Resumo de Produção":
     else:
         st.info("Nenhum pedido registrado ainda.")
 
-# 3. Gerenciar Clientes
+# ============================ TELA: CLIENTES ============================
 elif menu == "Clientes":
-    st.header("Clientes Cadastrados")
+    st.subheader("Clientes Cadastrados")
     for nome, endereco in clientes.items():
         st.write(f"- **{nome}**: {endereco}")
     
-    st.subheader("Adicionar Novo Cliente")
+    st.markdown("### Adicionar Novo Cliente")
     novo_nome = st.text_input("Nome do Cliente")
     novo_endereco = st.text_input("Endereço")
 
@@ -71,13 +77,13 @@ elif menu == "Clientes":
         else:
             st.warning("Preencha todos os campos.")
 
-# 4. Gerenciar Sabores
+# ============================ TELA: SABORES ============================
 elif menu == "Sabores":
-    st.header("Sabores Disponíveis")
+    st.subheader("Sabores Disponíveis")
     for s in sabores:
         st.write(f"- {s}")
     
-    st.subheader("Adicionar Novo Sabor")
+    st.markdown("### Adicionar Novo Sabor")
     novo_sabor = st.text_input("Novo Sabor")
 
     if st.button("Adicionar Sabor"):
@@ -87,9 +93,9 @@ elif menu == "Sabores":
         else:
             st.warning("Informe o nome do sabor.")
 
-# 5. Pagamentos
+# ============================ TELA: PAGAMENTOS ============================
 elif menu == "Pagamentos":
-    st.header("Controle de Pagamentos e Entregas")
+    st.subheader("Controle de Pagamentos e Entregas")
     if pedidos:
         df_pedidos = pd.DataFrame(pedidos)
         for i, row in df_pedidos.iterrows():
