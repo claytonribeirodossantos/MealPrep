@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 
 # Carrega o logo
-logo = Image.open("1.png")  # Renomeie o arquivo da imagem para este nome ou ajuste conforme necessário
+logo = Image.open("1.jpeg")  # Renomeie o arquivo da imagem para este nome ou ajuste conforme necessário
 
 # Configuração da página
 st.set_page_config(page_title="Meal Prep USA - Base de Clientes", layout="centered")
