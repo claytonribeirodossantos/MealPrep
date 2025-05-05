@@ -50,16 +50,16 @@ st.markdown("---")
 
 aba = st.sidebar.radio("📁 Ações", ["🔍 Buscar e Editar Cliente", "➕ Adicionar Cliente"])
 
-# =================== BUSCA COM EDIÇÃO ===================
+# =================== BUSCA COM INÍCIO DO NOME ===================
 if aba == "🔍 Buscar e Editar Cliente":
-    st.subheader("🔍 Buscar Cliente com Autocompletar")
+    st.subheader("🔍 Buscar Cliente pelo início do nome")
 
-    nome_digitado = st.text_input("Digite o nome do cliente")
+    nome_digitado = st.text_input("Digite o início do nome do cliente")
 
     sugestoes = []
     if nome_digitado:
-        nome_digitado = nome_digitado.strip().lower()
-        sugestoes = [nome for nome in clientes.keys() if nome_digitado in nome.lower()]
+        inicio = nome_digitado.strip().lower()
+        sugestoes = [nome for nome in clientes.keys() if nome.lower().startswith(inicio)]
 
     if sugestoes:
         nome_escolhido = st.selectbox("Selecione o cliente", sugestoes)
