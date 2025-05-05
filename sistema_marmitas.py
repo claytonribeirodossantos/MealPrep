@@ -48,46 +48,53 @@ st.markdown(
 )
 st.markdown("---")
 
-aba = st.sidebar.radio("📁 Ações", ["🔍 Buscar Cliente", "➕ Adicionar Cliente", "🗑️ Excluir Cliente"])
+aba = st.sidebar.radio("📁 Ações", ["🔍 Buscar e Editar Cliente", "➕ Adicionar Cliente"])
 
-if aba == "🔍 Buscar Cliente":
-    st.markdown("### 🔍 Buscar Cliente Cadastrado")
-    with st.container():
-        nome_busca = st.text_input("Digite o nome do cliente para buscar")
-        if st.button("Buscar"):
-            if nome_busca in clientes:
-                endereco = clientes[nome_busca]
-                st.success(f"✅ Endereço encontrado:\n\n{endereco}")
-            else:
-                st.warning("⚠️ Cliente não encontrado.")
+# =================== BUSCA COM EDIÇÃO ===================
+if aba == "🔍 Buscar e Editar Cliente":
+    st.subheader("🔍 Buscar Cliente com Autocompletar")
+    
+    nome_digitado = st.text_input("Digite o nome do cliente")
+    sugestoes = [nome for nome in clientes.keys() if nome.lower().startswith(nome_digitado.lower())] if nome_digitado else []
 
-elif aba == "➕ Adicionar Cliente":
-    st.markdown("### ➕ Cadastrar Novo Cliente")
-    with st.container():
+    if sugestoes:
+        nome_escolhido = st.selectbox("Selecione o cliente", sugestoes)
+        endereco_atual = clientes[nome_escolhido]
+
+        st.markdown("#### ✏️ Editar Cliente")
+        novo_nome = st.text_input("Nome do cliente", value=nome_escolhido)
+        novo_endereco = st.text_input("Endereço", value=endereco_atual)
+
         col1, col2 = st.columns(2)
         with col1:
-            nome_novo = st.text_input("Nome do novo cliente")
-        with col2:
-            endereco_digitado = st.text_input("Endereço (inicie a digitação para sugestões)")
-        
-        sugestoes = buscar_endereco_nominatim(endereco_digitado) if endereco_digitado else []
-        endereco_final = st.selectbox("Endereços sugeridos:", sugestoes) if sugestoes else endereco_digitado
-
-        if st.button("💾 Salvar Cliente", use_container_width=True):
-            if nome_novo and endereco_final:
-                clientes[nome_novo] = endereco_final
+            if st.button("💾 Salvar Alterações"):
+                clientes.pop(nome_escolhido)
+                clientes[novo_nome] = novo_endereco
                 salvar_clientes(clientes)
-                st.success(f"Cliente {nome_novo} salvo com sucesso! ✅")
-            else:
-                st.error("Preencha todos os campos.")
+                st.success(f"Cliente '{nome_escolhido}' atualizado para '{novo_nome}' com sucesso!")
 
-elif aba == "🗑️ Excluir Cliente":
-    st.markdown("### 🗑️ Remover Cliente da Base")
-    if clientes:
-        nome_excluir = st.selectbox("Selecione o cliente a ser removido", list(clientes.keys()))
-        if st.button("❌ Excluir Cliente", type="primary"):
-            clientes.pop(nome_excluir)
+        with col2:
+            if st.button("🗑️ Excluir Cliente"):
+                clientes.pop(nome_escolhido)
+                salvar_clientes(clientes)
+                st.warning(f"Cliente '{nome_escolhido}' foi excluído com sucesso!")
+
+# =================== ADICIONAR NOVO ===================
+elif aba == "➕ Adicionar Cliente":
+    st.subheader("➕ Adicionar Novo Cliente")
+    col1, col2 = st.columns(2)
+    with col1:
+        nome_novo = st.text_input("Nome do novo cliente")
+    with col2:
+        endereco_digitado = st.text_input("Endereço (digite para sugestões)")
+
+    sugestoes_end = buscar_endereco_nominatim(endereco_digitado) if endereco_digitado else []
+    endereco_final = st.selectbox("Endereços sugeridos:", sugestoes_end) if sugestoes_end else endereco_digitado
+
+    if st.button("✅ Cadastrar Cliente", use_container_width=True):
+        if nome_novo and endereco_final:
+            clientes[nome_novo] = endereco_final
             salvar_clientes(clientes)
-            st.success(f"Cliente {nome_excluir} removido com sucesso!")
-    else:
-        st.info("Nenhum cliente cadastrado ainda.")
+            st.success(f"Cliente '{nome_novo}' cadastrado com sucesso!")
+        else:
+            st.error("Preencha todos os campos.")
