@@ -6,10 +6,8 @@ import os
 
 st.set_page_config(page_title="Meal Prep USA", layout="wide")
 
-# ================= CONFIG =================
 CSV_CLIENTES = "clientes.csv"
 
-# ================= FUNÇÕES AUXILIARES =================
 def carregar_clientes():
     if os.path.exists(CSV_CLIENTES):
         df = pd.read_csv(CSV_CLIENTES)
@@ -39,7 +37,6 @@ def buscar_endereco_nominatim(query):
     except Exception:
         return []
 
-# ================= INTERFACE =================
 clientes = carregar_clientes()
 
 st.markdown(
@@ -51,23 +48,19 @@ st.markdown(
 )
 st.markdown("---")
 
-# Layout com três colunas separadas em cartões
 aba = st.sidebar.radio("📁 Ações", ["🔍 Buscar Cliente", "➕ Adicionar Cliente", "🗑️ Excluir Cliente"])
 
-# =============== BUSCAR ===============
 if aba == "🔍 Buscar Cliente":
     st.markdown("### 🔍 Buscar Cliente Cadastrado")
     with st.container():
         nome_busca = st.text_input("Digite o nome do cliente para buscar")
         if st.button("Buscar"):
             if nome_busca in clientes:
-                st.success(f"✅ Endereço encontrado:
-
-**{clientes[nome_busca]}**")
+                endereco = clientes[nome_busca]
+                st.success(f"✅ Endereço encontrado:\n\n{endereco}")
             else:
                 st.warning("⚠️ Cliente não encontrado.")
 
-# =============== ADICIONAR ===============
 elif aba == "➕ Adicionar Cliente":
     st.markdown("### ➕ Cadastrar Novo Cliente")
     with st.container():
@@ -84,11 +77,10 @@ elif aba == "➕ Adicionar Cliente":
             if nome_novo and endereco_final:
                 clientes[nome_novo] = endereco_final
                 salvar_clientes(clientes)
-                st.success(f"Cliente **{nome_novo}** salvo com sucesso! ✅")
+                st.success(f"Cliente {nome_novo} salvo com sucesso! ✅")
             else:
                 st.error("Preencha todos os campos.")
 
-# =============== EXCLUIR ===============
 elif aba == "🗑️ Excluir Cliente":
     st.markdown("### 🗑️ Remover Cliente da Base")
     if clientes:
@@ -96,6 +88,6 @@ elif aba == "🗑️ Excluir Cliente":
         if st.button("❌ Excluir Cliente", type="primary"):
             clientes.pop(nome_excluir)
             salvar_clientes(clientes)
-            st.success(f"Cliente **{nome_excluir}** removido com sucesso!")
+            st.success(f"Cliente {nome_excluir} removido com sucesso!")
     else:
         st.info("Nenhum cliente cadastrado ainda.")
