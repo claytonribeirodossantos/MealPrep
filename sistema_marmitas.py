@@ -1,88 +1,63 @@
-
+from PIL import Image
 import streamlit as st
 import pandas as pd
-import os
+from datetime import datetime
 
-st.set_page_config(page_title="Clientes - Meal Prep USA", layout="wide")
+# Carrega o logo
+logo = Image.open("logo_mealprep.jpeg")  # Renomeie o arquivo da imagem para este nome ou ajuste conforme necessário
 
-CSV_CLIENTES = "clientes.csv"
+# Configuração da página
+st.set_page_config(page_title="Meal Prep USA - Base de Clientes", layout="centered")
 
-def carregar_clientes():
-    if os.path.exists(CSV_CLIENTES):
-        df = pd.read_csv(CSV_CLIENTES)
-        return df
-    return pd.DataFrame(columns=["Nome", "Endereco"])
-
-def salvar_clientes(df):
-    df.to_csv(CSV_CLIENTES, index=False)
-
-def remover_cliente(df, nome):
-    df = df[df["Nome"] != nome]
-    salvar_clientes(df)
-    return df
-
-def atualizar_cliente(df, nome_antigo, nome_novo, novo_endereco):
-    df.loc[df["Nome"] == nome_antigo, "Nome"] = nome_novo
-    df.loc[df["Nome"] == nome_novo, "Endereco"] = novo_endereco
-    salvar_clientes(df)
-    return df
-
+# Estilo customizado com as cores do logo
 st.markdown("""
     <style>
-    .cliente-card {
-        border: 1px solid #ccc;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 15px;
-        background-color: #f9f9f9;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .main {
+        background-color: #ffffff;
     }
-    .cliente-nome {
-        font-weight: bold;
-        font-size: 18px;
-        color: #333;
+    h1 {
+        color: #4C7024;
     }
-    .cliente-endereco {
-        font-size: 14px;
-        color: #555;
+    .stButton>button {
+        background-color: #F7941D;
+        color: white;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📇 Clientes - Meal Prep USA")
-df_clientes = carregar_clientes()
+# Exibe o logo
+st.image(logo, width=200)
+st.title("Base de Clientes - Meal Prep USA")
 
-with st.expander("➕ Adicionar Novo Cliente"):
-    nome_novo = st.text_input("Nome do Cliente")
-    endereco_novo = st.text_input("Endereço")
-    if st.button("✅ Cadastrar"):
-        if nome_novo and endereco_novo:
-            df_clientes.loc[len(df_clientes)] = [nome_novo, endereco_novo]
-            salvar_clientes(df_clientes)
-            st.success("Cliente adicionado com sucesso!")
+# Inicializa a lista de clientes
+if "clientes" not in st.session_state:
+    st.session_state.clientes = []
+
+# Formulário para novo cliente
+with st.form("form_cliente"):
+    nome = st.text_input("Nome completo")
+    endereco = st.text_input("Endereço (com complemento)")
+    telefone = st.text_input("Telefone")
+    submit = st.form_submit_button("Cadastrar")
+
+    if submit:
+        if nome and endereco and telefone:
+            data_cadastro = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            novo_cliente = {
+                "Nome": nome,
+                "Endereço": endereco,
+                "Telefone": telefone,
+                "Data de Cadastro": data_cadastro
+            }
+            st.session_state.clientes.append(novo_cliente)
+            st.success("Cliente cadastrado com sucesso!")
         else:
-            st.warning("Preencha os dois campos.")
+            st.warning("Preencha todos os campos.")
 
-st.markdown("### 🧾 Lista de Clientes")
-for _, row in df_clientes.iterrows():
-    with st.container():
-        st.markdown('<div class="cliente-card">', unsafe_allow_html=True)
-        st.markdown(f'<div class="cliente-nome">{row["Nome"]}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="cliente-endereco">{row["Endereco"]}</div>', unsafe_allow_html=True)
-
-        col1, col2 = st.columns([1,1])
-        with col1:
-            if st.button(f"✏️ Editar {row['Nome']}"):
-                with st.form(f"form_editar_{row['Nome']}"):
-                    novo_nome = st.text_input("Novo Nome", value=row["Nome"])
-                    novo_endereco = st.text_input("Novo Endereço", value=row["Endereco"])
-                    if st.form_submit_button("Salvar Alterações"):
-                        df_clientes = atualizar_cliente(df_clientes, row["Nome"], novo_nome, novo_endereco)
-                        st.success("Cliente atualizado com sucesso!")
-                        st.experimental_rerun()
-        with col2:
-            if st.button(f"🗑️ Excluir {row['Nome']}"):
-                df_clientes = remover_cliente(df_clientes, row["Nome"])
-                st.warning("Cliente removido.")
-                st.experimental_rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+# Exibição da tabela de clientes
+if st.session_state.clientes:
+    df = pd.DataFrame(st.session_state.clientes)
+    st.subheader("Clientes cadastrados")
+    st.dataframe(df, use_container_width=True)
+else:
+    st.info("Nenhum cliente cadastrado ainda.")
