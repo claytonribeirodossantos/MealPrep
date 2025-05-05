@@ -1,100 +1,124 @@
-import pandas as pd
-import os
-from PIL import Image
-from datetime import datetime
+
 import streamlit as st
+import pandas as pd
+from datetime import date
+import os
 
-# Caminho dos arquivos
-CSV_PATH = "clientes.csv"
-LOGO_PATH = "1.png"
+st.set_page_config(page_title="Meal Prep USA", layout="wide")
 
-# Criação do arquivo CSV se não existir
-if not os.path.exists(CSV_PATH):
-    df_empty = pd.DataFrame(columns=["Nome", "Endereço", "Telefone", "Data de Cadastro"])
-    df_empty.to_csv(CSV_PATH, index=False)
+# Caminhos
+CSV_CLIENTES = "clientes.csv"
 
-# Carregar os dados
-df = pd.read_csv(CSV_PATH)
+# Carregar clientes
+if os.path.exists(CSV_CLIENTES):
+    df_clientes = pd.read_csv(CSV_CLIENTES)
+    clientes = dict(zip(df_clientes["Nome"], df_clientes["Endereco"]))
+else:
+    clientes = {}
 
-# Configuração da página
-st.set_page_config(page_title="Base de Clientes - Meal Prep USA", layout="centered")
+# Sabores fixos
+sabores = [
+    "Frango grelhado", "Feijoada", "Strogonoff de frango",
+    "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"
+]
+pedidos = []
 
-# Estilos customizados
-st.markdown("""
-    <style>
-    .main {
-        background-color: #ffffff;
-    }
-    h1 {
-        color: #4C7024;
-    }
-    .stButton>button {
-        background-color: #F7941D;
-        color: white;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Logo e título
+st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/logo_mealprepusa.jpeg", width=300)
+st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
+st.markdown("---")
 
-# Exibe o logo
-if os.path.exists(LOGO_PATH):
-    logo = Image.open(LOGO_PATH)
-    st.image(logo, width=200)
+# Menu lateral
+menu = st.sidebar.radio("Menu", ["Cadastrar Pedido", "Resumo de Produção", "Clientes", "Sabores", "Pagamentos"])
 
-st.title("Base de Clientes - Meal Prep USA")
-
-# Ações do menu
-aba = st.sidebar.radio("Menu", ["Cadastrar", "Buscar/Editar", "Excluir", "Listar todos"])
-
-# --- Cadastrar novo cliente ---
-if aba == "Cadastrar":
-    st.header("Cadastrar novo cliente")
-    with st.form("form_cadastro"):
-        nome = st.text_input("Nome completo")
-        endereco = st.text_input("Endereço (com complemento)")
-        telefone = st.text_input("Telefone")
-        submit = st.form_submit_button("Cadastrar")
-        if submit:
-            if nome and endereco and telefone:
-                data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                novo = pd.DataFrame([[nome, endereco, telefone, data]], columns=df.columns)
-                df = pd.concat([df, novo], ignore_index=True)
-                df.to_csv(CSV_PATH, index=False)
-                st.success("Cliente cadastrado com sucesso!")
-            else:
-                st.warning("Preencha todos os campos.")
-
-# --- Buscar e editar cliente ---
-elif aba == "Buscar/Editar":
-    st.header("Buscar e editar cliente")
-    nomes = df["Nome"].tolist()
-    busca = st.selectbox("Selecione o nome", [""] + nomes)
-    if busca:
-        dados = df[df["Nome"] == busca].iloc[0]
-        with st.form("form_editar"):
-            nome = st.text_input("Nome completo", value=dados["Nome"])
-            endereco = st.text_input("Endereço", value=dados["Endereço"])
-            telefone = st.text_input("Telefone", value=dados["Telefone"])
-            submit = st.form_submit_button("Salvar alterações")
-            if submit:
-                df.loc[df["Nome"] == busca, ["Nome", "Endereço", "Telefone"]] = [nome, endereco, telefone]
-                df.to_csv(CSV_PATH, index=False)
-                st.success("Dados atualizados com sucesso!")
-
-# --- Excluir cliente ---
-elif aba == "Excluir":
-    st.header("Excluir cliente")
-    nomes = df["Nome"].tolist()
-    selecionado = st.selectbox("Escolha o cliente para excluir", [""] + nomes)
-    if selecionado:
-        if st.button(f"Confirmar exclusão de {selecionado}"):
-            df = df[df["Nome"] != selecionado]
-            df.to_csv(CSV_PATH, index=False)
-            st.success("Cliente excluído com sucesso!")
-
-# --- Listar todos os clientes ---
-elif aba == "Listar todos":
-    st.header("Clientes cadastrados")
-    if df.empty:
-        st.info("Nenhum cliente cadastrado.")
+# ============================ PEDIDOS ============================
+if menu == "Cadastrar Pedido":
+    st.subheader("Cadastrar Pedido")
+    if clientes:
+        cliente = st.selectbox("Cliente", list(clientes.keys()))
+        sabor = st.selectbox("Sabor da Marmita", sabores)
+        quantidade = st.number_input("Quantidade", min_value=1, step=1)
+        data_pedido = st.date_input("Data da entrega", value=date.today())
+        if st.button("Registrar Pedido", type="primary"):
+            pedidos.append({
+                "Cliente": cliente, "Sabor": sabor,
+                "Quantidade": quantidade, "Data": data_pedido,
+                "Pago": False, "Entregue": False
+            })
+            st.success("Pedido registrado com sucesso!")
     else:
-        st.dataframe(df, use_container_width=True)
+        st.warning("Nenhum cliente cadastrado ainda.")
+
+# ============================ PRODUÇÃO ============================
+elif menu == "Resumo de Produção":
+    st.subheader("Resumo de Produção por Sabor")
+    if pedidos:
+        df = pd.DataFrame(pedidos)
+        resumo = df.groupby("Sabor")["Quantidade"].sum().reset_index()
+        st.table(resumo)
+    else:
+        st.info("Nenhum pedido registrado ainda.")
+
+# ============================ CLIENTES ============================
+elif menu == "Clientes":
+    st.subheader("Clientes Cadastrados")
+    if clientes:
+        for nome, endereco in clientes.items():
+            st.write(f"- **{nome}**: {endereco}")
+    else:
+        st.info("Nenhum cliente cadastrado ainda.")
+
+    st.markdown("### Adicionar Novo Cliente")
+    novo_nome = st.text_input("Nome do Cliente")
+    novo_endereco = st.text_input("Endereço")
+    if st.button("Adicionar Cliente"):
+        if novo_nome and novo_endereco:
+            clientes[novo_nome] = novo_endereco
+            df = pd.DataFrame(list(clientes.items()), columns=["Nome", "Endereco"])
+            df.to_csv(CSV_CLIENTES, index=False)
+            st.success(f"Cliente {novo_nome} adicionado com sucesso!")
+        else:
+            st.warning("Preencha todos os campos.")
+
+    st.markdown("### Editar Cliente Existente")
+    cliente_editar = st.selectbox("Selecione o cliente", list(clientes.keys()))
+    novo_nome_editar = st.text_input("Novo nome", value=cliente_editar)
+    novo_endereco_editar = st.text_input("Novo endereço", value=clientes[cliente_editar])
+    if st.button("Salvar Alterações"):
+        if novo_nome_editar and novo_endereco_editar:
+            clientes.pop(cliente_editar)
+            clientes[novo_nome_editar] = novo_endereco_editar
+            df = pd.DataFrame(list(clientes.items()), columns=["Nome", "Endereco"])
+            df.to_csv(CSV_CLIENTES, index=False)
+            st.success("Cliente atualizado com sucesso!")
+
+# ============================ SABORES ============================
+elif menu == "Sabores":
+    st.subheader("Sabores Disponíveis")
+    for s in sabores:
+        st.write(f"- {s}")
+    novo_sabor = st.text_input("Novo Sabor")
+    if st.button("Adicionar Sabor"):
+        if novo_sabor:
+            sabores.append(novo_sabor)
+            st.success(f"Sabor '{novo_sabor}' adicionado!")
+        else:
+            st.warning("Informe o nome do sabor.")
+
+# ============================ PAGAMENTOS ============================
+elif menu == "Pagamentos":
+    st.subheader("Controle de Pagamentos e Entregas")
+    if pedidos:
+        df = pd.DataFrame(pedidos)
+        for i, row in df.iterrows():
+            st.markdown(f"### Pedido {i+1}")
+            st.write(f"Cliente: {row['Cliente']}")
+            st.write(f"Sabor: {row['Sabor']}")
+            st.write(f"Quantidade: {row['Quantidade']}")
+            st.write(f"Data: {row['Data']}")
+            pago = st.checkbox("Pago?", value=row["Pago"], key=f"pago_{i}")
+            entregue = st.checkbox("Entregue?", value=row["Entregue"], key=f"entregue_{i}")
+            pedidos[i]["Pago"] = pago
+            pedidos[i]["Entregue"] = entregue
+    else:
+        st.info("Nenhum pedido registrado ainda.")
