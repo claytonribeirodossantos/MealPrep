@@ -1,15 +1,25 @@
-from PIL import Image
-import streamlit as st
 import pandas as pd
+import os
+from PIL import Image
 from datetime import datetime
+import streamlit as st
 
-# Carrega o logo
-logo = Image.open("1.jpeg")  # Renomeie o arquivo da imagem para este nome ou ajuste conforme necessário
+# Caminho dos arquivos
+CSV_PATH = "clientes.csv"
+LOGO_PATH = "1.png"
+
+# Criação do arquivo CSV se não existir
+if not os.path.exists(CSV_PATH):
+    df_empty = pd.DataFrame(columns=["Nome", "Endereço", "Telefone", "Data de Cadastro"])
+    df_empty.to_csv(CSV_PATH, index=False)
+
+# Carregar os dados
+df = pd.read_csv(CSV_PATH)
 
 # Configuração da página
-st.set_page_config(page_title="Meal Prep USA - Base de Clientes", layout="centered")
+st.set_page_config(page_title="Base de Clientes - Meal Prep USA", layout="centered")
 
-# Estilo customizado com as cores do logo
+# Estilos customizados
 st.markdown("""
     <style>
     .main {
@@ -26,38 +36,65 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Exibe o logo
-st.image(logo, width=200)
+if os.path.exists(LOGO_PATH):
+    logo = Image.open(LOGO_PATH)
+    st.image(logo, width=200)
+
 st.title("Base de Clientes - Meal Prep USA")
 
-# Inicializa a lista de clientes
-if "clientes" not in st.session_state:
-    st.session_state.clientes = []
+# Ações do menu
+aba = st.sidebar.radio("Menu", ["Cadastrar", "Buscar/Editar", "Excluir", "Listar todos"])
 
-# Formulário para novo cliente
-with st.form("form_cliente"):
-    nome = st.text_input("Nome completo")
-    endereco = st.text_input("Endereço (com complemento)")
-    telefone = st.text_input("Telefone")
-    submit = st.form_submit_button("Cadastrar")
+# --- Cadastrar novo cliente ---
+if aba == "Cadastrar":
+    st.header("Cadastrar novo cliente")
+    with st.form("form_cadastro"):
+        nome = st.text_input("Nome completo")
+        endereco = st.text_input("Endereço (com complemento)")
+        telefone = st.text_input("Telefone")
+        submit = st.form_submit_button("Cadastrar")
+        if submit:
+            if nome and endereco and telefone:
+                data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                novo = pd.DataFrame([[nome, endereco, telefone, data]], columns=df.columns)
+                df = pd.concat([df, novo], ignore_index=True)
+                df.to_csv(CSV_PATH, index=False)
+                st.success("Cliente cadastrado com sucesso!")
+            else:
+                st.warning("Preencha todos os campos.")
 
-    if submit:
-        if nome and endereco and telefone:
-            data_cadastro = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            novo_cliente = {
-                "Nome": nome,
-                "Endereço": endereco,
-                "Telefone": telefone,
-                "Data de Cadastro": data_cadastro
-            }
-            st.session_state.clientes.append(novo_cliente)
-            st.success("Cliente cadastrado com sucesso!")
-        else:
-            st.warning("Preencha todos os campos.")
+# --- Buscar e editar cliente ---
+elif aba == "Buscar/Editar":
+    st.header("Buscar e editar cliente")
+    nomes = df["Nome"].tolist()
+    busca = st.selectbox("Selecione o nome", [""] + nomes)
+    if busca:
+        dados = df[df["Nome"] == busca].iloc[0]
+        with st.form("form_editar"):
+            nome = st.text_input("Nome completo", value=dados["Nome"])
+            endereco = st.text_input("Endereço", value=dados["Endereço"])
+            telefone = st.text_input("Telefone", value=dados["Telefone"])
+            submit = st.form_submit_button("Salvar alterações")
+            if submit:
+                df.loc[df["Nome"] == busca, ["Nome", "Endereço", "Telefone"]] = [nome, endereco, telefone]
+                df.to_csv(CSV_PATH, index=False)
+                st.success("Dados atualizados com sucesso!")
 
-# Exibição da tabela de clientes
-if st.session_state.clientes:
-    df = pd.DataFrame(st.session_state.clientes)
-    st.subheader("Clientes cadastrados")
-    st.dataframe(df, use_container_width=True)
-else:
-    st.info("Nenhum cliente cadastrado ainda.")
+# --- Excluir cliente ---
+elif aba == "Excluir":
+    st.header("Excluir cliente")
+    nomes = df["Nome"].tolist()
+    selecionado = st.selectbox("Escolha o cliente para excluir", [""] + nomes)
+    if selecionado:
+        if st.button(f"Confirmar exclusão de {selecionado}"):
+            df = df[df["Nome"] != selecionado]
+            df.to_csv(CSV_PATH, index=False)
+            st.success("Cliente excluído com sucesso!")
+
+# --- Listar todos os clientes ---
+elif aba == "Listar todos":
+    st.header("Clientes cadastrados")
+    if df.empty:
+        st.info("Nenhum cliente cadastrado.")
+    else:
+        st.dataframe(df, use_container_width=True)
