@@ -40,7 +40,7 @@ if authentication_status:
     authenticator.logout("Logout", "sidebar")
 
     # Logo e título
-    st.image("1.jpeg", width=300)
+    st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/1.jpeg", width=300)
     st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
