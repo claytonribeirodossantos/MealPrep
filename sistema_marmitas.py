@@ -1,62 +1,63 @@
-import streamlit as st
-import pandas as pd
 from datetime import date
-import os
+import pandas as pd
+import streamlit as st
 import streamlit_authenticator as stauth
 
 st.set_page_config(page_title="Meal Prep USA", layout="wide")
 
-# ==================== Funções de carregamento ====================
+# CSV paths
+CSV_CLIENTES = "clientes.csv"
+CSV_PEDIDOS = "pedidos.csv"
+CSV_SABORES = "sabores.csv"
+
+# Função para carregar CSV com tratamento de erro
 def carregar_csv(nome_arquivo, default=pd.DataFrame()):
     try:
         return pd.read_csv(nome_arquivo)
     except:
         return default
 
-CSV_CLIENTES = "clientes.csv"
-CSV_PEDIDOS = "pedidos.csv"
-CSV_SABORES = "sabores.csv"
-
+# Dados iniciais
 clientes_df = carregar_csv(CSV_CLIENTES)
 pedidos_df = carregar_csv(CSV_PEDIDOS)
 sabores_df = carregar_csv(CSV_SABORES, pd.DataFrame({"Sabor": [
     "Frango grelhado", "Feijoada", "Strogonoff de frango",
-    "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"]}))
+    "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"
+]}))
 
-# ==================== Autenticação ====================
+# Autenticação
 credentials = {
     "usernames": {
         "admin": {
             "name": "Admin",
-            "password": stauth.Hasher(["senha123"]).generate()[0]
+            "password": "pbkdf2:sha256:260000$YQWRdj8GlQXV6u5j$6ed944aa7b2e2c529a91b8b75c1893a7f5c2e18cfb9d110d3c04d36044fbd4e7"
         }
     }
 }
+authenticator = stauth.Authenticate(credentials, "meal_prep", "abcdef", cookie_expiry_days=30)
+name, authentication_status, username = authenticator.login("Login", location="main")
 
-authenticator = stauth.Authenticate(
-    credentials, "meal_prep", "abcdef", cookie_expiry_days=30
-)
-
-name, authentication_status, username = authenticator.login("Login")
-
-# ==================== Login ====================
-if authentication_status:
+if authentication_status is False:
+    st.error("Nome de usuário ou senha incorretos.")
+elif authentication_status is None:
+    st.warning("Por favor, insira suas credenciais para continuar.")
+elif authentication_status:
     st.sidebar.success(f"Bem-vindo(a), {name}!")
     authenticator.logout("Logout", "sidebar")
 
-    col1, col2 = st.columns([1, 4])
+    # Logo e título
+    col1, col2 = st.columns([1, 5])
     with col1:
         st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/1.jpeg", width=100)
     with col2:
         st.markdown("<h1 style='color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
-
     st.markdown("---")
-    menu = st.sidebar.selectbox("📁 Navegação", [
-        "📦 Cadastrar Pedido", "📊 Resumo de Produção", "👤 Clientes", "🍽️ Sabores", "💰 Pagamentos"
-    ])
 
-    # ==================== Cadastrar Pedido ====================
-    if menu == "📦 Cadastrar Pedido":
+    # Menu
+    menu = st.sidebar.selectbox("📁 Navegação", ["📦 Cadastrar Pedido", "📊 Resumo de Produção", "👤 Clientes", "🍽️ Sabores", "💰 Pagamentos"])
+
+    # PEDIDOS
+    if "Cadastrar Pedido" in menu:
         st.subheader("Cadastrar Pedido")
         if not clientes_df.empty:
             cliente = st.selectbox("Cliente", clientes_df["Nome"])
@@ -64,19 +65,19 @@ if authentication_status:
             quantidade = st.number_input("Quantidade", min_value=1, step=1)
             data_pedido = st.date_input("Data da entrega", value=date.today())
             if st.button("Registrar Pedido", type="primary"):
-                novo = pd.DataFrame({
+                novo_pedido = pd.DataFrame({
                     "Cliente": [cliente], "Sabor": [sabor],
                     "Quantidade": [quantidade], "Data": [data_pedido],
                     "Pago": [False], "Entregue": [False]
                 })
-                pedidos_df = pd.concat([pedidos_df, novo], ignore_index=True)
+                pedidos_df = pd.concat([pedidos_df, novo_pedido], ignore_index=True)
                 pedidos_df.to_csv(CSV_PEDIDOS, index=False)
                 st.success("Pedido registrado com sucesso!")
         else:
             st.warning("Nenhum cliente cadastrado ainda.")
 
-    # ==================== Resumo Produção ====================
-    elif menu == "📊 Resumo de Produção":
+    # RESUMO DE PRODUÇÃO
+    elif "Resumo de Produção" in menu:
         st.subheader("Resumo de Produção por Sabor")
         if not pedidos_df.empty:
             resumo = pedidos_df.groupby("Sabor")["Quantidade"].sum().reset_index()
@@ -84,59 +85,43 @@ if authentication_status:
         else:
             st.info("Nenhum pedido registrado ainda.")
 
-    # ============================ CLIENTES ============================
-elif "Clientes" in menu:
-    st.subheader("👤 Clientes Cadastrados")
+    # CLIENTES
+    elif "Clientes" in menu:
+        st.subheader("👤 Clientes Cadastrados")
+        filtro = st.text_input("🔍 Buscar cliente pelo nome")
+        df_filtrado = clientes_df[clientes_df["Nome"].str.contains(filtro, case=False, na=False)] if filtro else clientes_df
 
-    # Campo de busca
-    busca = st.text_input("🔍 Buscar cliente pelo nome")
+        for i, row in df_filtrado.iterrows():
+            with st.expander(f"{row['Nome']}"):
+                novo_nome = st.text_input("Nome", value=row['Nome'], key=f"nome_{i}")
+                novo_endereco = st.text_input("Endereço", value=row['Endereco'], key=f"endereco_{i}")
+                col1, col2 = st.columns(2)
+                if col1.button("Salvar", key=f"salvar_{i}"):
+                    clientes_df.at[i, "Nome"] = novo_nome
+                    clientes_df.at[i, "Endereco"] = novo_endereco
+                    clientes_df.to_csv(CSV_CLIENTES, index=False)
+                    st.success("Alterado com sucesso!")
+                if col2.button("Excluir", key=f"excluir_{i}"):
+                    clientes_df = clientes_df.drop(index=i).reset_index(drop=True)
+                    clientes_df.to_csv(CSV_CLIENTES, index=False)
+                    st.success("Excluído com sucesso!")
+                    st.experimental_rerun()
 
-    if busca:
-        resultados = clientes_df[clientes_df["Nome"].str.contains(busca, case=False, na=False)]
+        st.markdown("### ➕ Adicionar Novo Cliente")
+        novo_nome = st.text_input("Nome do Cliente")
+        novo_endereco = st.text_input("Endereço")
+        if st.button("Adicionar Cliente"):
+            if novo_nome and novo_endereco:
+                novo_cliente = pd.DataFrame({"Nome": [novo_nome], "Endereco": [novo_endereco]})
+                clientes_df = pd.concat([clientes_df, novo_cliente], ignore_index=True)
+                clientes_df.to_csv(CSV_CLIENTES, index=False)
+                st.success("Cliente adicionado com sucesso!")
+            else:
+                st.warning("Preencha todos os campos.")
 
-        if not resultados.empty:
-            for i, row in resultados.iterrows():
-                with st.expander(f"{row['Nome']} - {row['Endereco']}"):
-                    novo_nome = st.text_input("Editar Nome", value=row["Nome"], key=f"nome_{i}")
-                    novo_endereco = st.text_input("Editar Endereço", value=row["Endereco"], key=f"end_{i}")
-
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("💾 Salvar Alterações", key=f"salvar_{i}"):
-                            clientes_df.at[i, "Nome"] = novo_nome
-                            clientes_df.at[i, "Endereco"] = novo_endereco
-                            clientes_df.to_csv(CSV_CLIENTES, index=False)
-                            st.success("Cliente atualizado com sucesso.")
-                            st.experimental_rerun()
-
-                    with col2:
-                        if st.button("🗑️ Excluir Cliente", key=f"excluir_{i}"):
-                            clientes_df = clientes_df.drop(index=i).reset_index(drop=True)
-                            clientes_df.to_csv(CSV_CLIENTES, index=False)
-                            st.success("Cliente excluído com sucesso.")
-                            st.experimental_rerun()
-        else:
-            st.warning("Nenhum cliente encontrado.")
-    else:
-        st.info("Digite um nome para buscar um cliente.")
-
-    st.markdown("---")
-    st.markdown("### ➕ Adicionar Novo Cliente")
-    novo_nome = st.text_input("Nome do Cliente")
-    novo_endereco = st.text_input("Endereço")
-    if st.button("Adicionar Cliente"):
-        if novo_nome and novo_endereco:
-            novo_cliente = pd.DataFrame({"Nome": [novo_nome], "Endereco": [novo_endereco]})
-            clientes_df = pd.concat([clientes_df, novo_cliente], ignore_index=True)
-            clientes_df.to_csv(CSV_CLIENTES, index=False)
-            st.success("Cliente adicionado com sucesso!")
-            st.experimental_rerun()
-        else:
-            st.warning("Preencha todos os campos.")
-
-    # ==================== Sabores ====================
-    elif menu == "🍽️ Sabores":
-        st.subheader("Sabores Disponíveis")
+    # SABORES
+    elif "Sabores" in menu:
+        st.subheader("🍽️ Sabores Disponíveis")
         st.dataframe(sabores_df)
         novo_sabor = st.text_input("Novo Sabor")
         if st.button("Adicionar Sabor"):
@@ -147,9 +132,9 @@ elif "Clientes" in menu:
             else:
                 st.warning("Informe o nome do sabor.")
 
-    # ==================== Pagamentos ====================
-    elif menu == "💰 Pagamentos":
-        st.subheader("Controle de Pagamentos e Entregas")
+    # PAGAMENTOS
+    elif "Pagamentos" in menu:
+        st.subheader("💰 Controle de Pagamentos e Entregas")
         if not pedidos_df.empty:
             for i, row in pedidos_df.iterrows():
                 with st.expander(f"Pedido {i+1}: {row['Cliente']}"):
@@ -162,9 +147,3 @@ elif "Clientes" in menu:
                 st.success("Alterações salvas com sucesso!")
         else:
             st.info("Nenhum pedido registrado ainda.")
-
-# ==================== Mensagens de erro login ====================
-elif authentication_status is False:
-    st.error("Nome de usuário ou senha incorretos.")
-elif authentication_status is None:
-    st.warning("Por favor, insira suas credenciais para continuar.")
