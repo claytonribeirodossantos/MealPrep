@@ -42,6 +42,8 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=30
 )
 
+name, authentication_status, username = authenticator.login("Login", "main")
+
 
 authenticator = stauth.Authenticate(names, usernames, hashed_passwords, "meal_prep", "abcdef", cookie_expiry_days=30)
 name, authentication_status, username = authenticator.login("Login", "main")
