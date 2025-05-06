@@ -42,10 +42,7 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=30
 )
 
-
-name, authentication_status, username = authenticator.login("Login", "main")
-
-
+name, authentication_status, username = authenticator.login("Login")
 
 if authentication_status:
     st.sidebar.success(f"Bem-vindo(a), {name}!")
