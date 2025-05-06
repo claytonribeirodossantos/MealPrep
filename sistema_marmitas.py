@@ -6,29 +6,24 @@ import streamlit_authenticator as stauth
 
 st.set_page_config(page_title="Meal Prep USA", layout="wide")
 
-# Arquivos CSV
+# ==================== CSV ====================
 CSV_CLIENTES = "clientes.csv"
 CSV_PEDIDOS = "pedidos.csv"
 CSV_SABORES = "sabores.csv"
 
-# Função para carregar CSV com tratamento de erro
 def carregar_csv(nome_arquivo, default=pd.DataFrame()):
     try:
         return pd.read_csv(nome_arquivo)
     except:
         return default
 
-# Carregar dados
 clientes_df = carregar_csv(CSV_CLIENTES)
 pedidos_df = carregar_csv(CSV_PEDIDOS)
 sabores_df = carregar_csv(CSV_SABORES, pd.DataFrame({"Sabor": [
     "Frango grelhado", "Feijoada", "Strogonoff de frango",
     "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"]}))
 
-import streamlit as st
-import streamlit_authenticator as stauth
-
-# Credenciais do usuário
+# ==================== AUTENTICAÇÃO ====================
 credentials = {
     "usernames": {
         "admin": {
@@ -38,44 +33,25 @@ credentials = {
     }
 }
 
-# Criar autenticação
-authenticator = stauth.Authenticate(
-    credentials,
-    "meal_prep",  # nome do cookie
-    "abcdef",     # chave secreta
-    cookie_expiry_days=30
-)
-
-# Exibir tela de login
+authenticator = stauth.Authenticate(credentials, "meal_prep", "abcdef", cookie_expiry_days=30)
 name, authentication_status, username = authenticator.login("Login")
 
-# Verificação do login
-if authentication_status is False:
-    st.error("Nome de usuário ou senha incorretos.")
-
-elif authentication_status is None:
-    st.warning("Por favor, insira suas credenciais para continuar.")
-
-elif authentication_status:
+# ==================== VERIFICAÇÃO DE LOGIN ====================
+if authentication_status:
     st.sidebar.success(f"Bem-vindo(a), {name}!")
     authenticator.logout("Logout", "sidebar")
 
-    # AQUI SEGUE O RESTANTE DO SEU CÓDIGO, por exemplo:
-    st.title("Sistema Meal Prep USA")
-    st.write("Você está logado com sucesso.")
-
-
-    # Logo e título
+    # ==================== INTERFACE ====================
     col1, col2 = st.columns([1, 4])
     with col1:
-        st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/1.jpeg", width=100)
+        st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/1.jpeg", width=100)
     with col2:
         st.markdown("<h1 style='color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
-    menu = st.sidebar.selectbox("\U0001F4C1 Navegação", ["📦 Cadastrar Pedido", "📊 Resumo de Produção", "👤 Clientes", "🍽️ Sabores", "💰 Pagamentos"])
+    menu = st.sidebar.selectbox("📁 Navegação", ["📦 Cadastrar Pedido", "📊 Resumo de Produção", "👤 Clientes", "🍽️ Sabores", "💰 Pagamentos"])
 
-    # PEDIDOS
+    # ==================== PEDIDOS ====================
     if "Cadastrar Pedido" in menu:
         st.subheader("Cadastrar Pedido")
         if not clientes_df.empty:
@@ -96,7 +72,7 @@ elif authentication_status:
         else:
             st.warning("Nenhum cliente cadastrado ainda.")
 
-    # PRODUÇÃO
+    # ==================== PRODUÇÃO ====================
     elif "Resumo de Produção" in menu:
         st.subheader("Resumo de Produção por Sabor")
         if not pedidos_df.empty:
@@ -105,7 +81,7 @@ elif authentication_status:
         else:
             st.info("Nenhum pedido registrado ainda.")
 
-    # CLIENTES
+    # ==================== CLIENTES ====================
     elif "Clientes" in menu:
         st.subheader("Clientes Cadastrados")
         st.dataframe(clientes_df)
@@ -122,7 +98,7 @@ elif authentication_status:
             else:
                 st.warning("Preencha todos os campos.")
 
-    # SABORES
+    # ==================== SABORES ====================
     elif "Sabores" in menu:
         st.subheader("Sabores Disponíveis")
         st.dataframe(sabores_df)
@@ -136,7 +112,7 @@ elif authentication_status:
             else:
                 st.warning("Informe o nome do sabor.")
 
-    # PAGAMENTOS
+    # ==================== PAGAMENTOS ====================
     elif "Pagamentos" in menu:
         st.subheader("Controle de Pagamentos e Entregas")
         if not pedidos_df.empty:
@@ -153,7 +129,7 @@ elif authentication_status:
         else:
             st.info("Nenhum pedido registrado ainda.")
 
-elif authentication_status == False:
+elif authentication_status is False:
     st.error("Nome de usuário ou senha incorretos.")
-elif authentication_status == None:
+elif authentication_status is None:
     st.warning("Por favor, insira suas credenciais para continuar.")
