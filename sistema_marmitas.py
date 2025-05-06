@@ -95,20 +95,30 @@ if authentication_status:
                 st.warning("Todos os pedidos foram zerados.")
 
     # RESUMO
-    elif "Resumo de Produção" in menu:
-        st.subheader("Resumo de Produção por Cliente")
-        if not pedidos_df.empty:
-            resumo_cliente = pedidos_df.groupby("Cliente")["Quantidade"].sum().reset_index()
-            st.dataframe(resumo_cliente)
+        elif "Resumo de Produção" in menu:
+        st.subheader("Resumo de Produção")
 
-            st.subheader("Resumo de Produção por Sabor")
-            resumo_sabor = pedidos_df.groupby("Sabor")["Quantidade"].sum().reset_index()
-            st.dataframe(resumo_sabor)
+        if not pedidos_df.empty:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("### 📌 Por Cliente")
+                resumo_cliente = pedidos_df.groupby("Cliente")["Quantidade"].sum().reset_index()
+                resumo_cliente = resumo_cliente.sort_values("Quantidade", ascending=False)
+                st.dataframe(resumo_cliente, use_container_width=True)
+
+            with col2:
+                st.markdown("### 🍽️ Por Sabor")
+                resumo_sabor = pedidos_df.groupby("Sabor")["Quantidade"].sum().reset_index()
+                resumo_sabor = resumo_sabor.sort_values("Quantidade", ascending=False)
+                st.dataframe(resumo_sabor, use_container_width=True)
 
             total_geral = pedidos_df["Quantidade"].sum()
-            st.success(f"**Total geral de marmitas: {total_geral}**")
+            st.markdown("---")
+            st.success(f"**Total geral de marmitas da semana: {total_geral}**")
         else:
             st.info("Nenhum pedido registrado ainda.")
+
 
     # CLIENTES
     elif "Clientes" in menu:
