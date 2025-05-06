@@ -23,7 +23,7 @@ sabores_df = carregar_csv(CSV_SABORES, pd.DataFrame({"Sabor": [
     "Frango grelhado", "Feijoada", "Strogonoff de frango",
     "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"]}))
 
-# ==================== Autenticação com senha em texto ====================
+# ==================== Autenticação ====================
 credentials = {
     "usernames": {
         "admin": {
@@ -39,7 +39,7 @@ authenticator = stauth.Authenticate(
 
 name, authentication_status, username = authenticator.login("Login")
 
-# ==================== Lógica de login ====================
+# ==================== Login ====================
 if authentication_status:
     st.sidebar.success(f"Bem-vindo(a), {name}!")
     authenticator.logout("Logout", "sidebar")
@@ -55,6 +55,7 @@ if authentication_status:
         "📦 Cadastrar Pedido", "📊 Resumo de Produção", "👤 Clientes", "🍽️ Sabores", "💰 Pagamentos"
     ])
 
+    # ==================== Cadastrar Pedido ====================
     if menu == "📦 Cadastrar Pedido":
         st.subheader("Cadastrar Pedido")
         if not clientes_df.empty:
@@ -74,6 +75,7 @@ if authentication_status:
         else:
             st.warning("Nenhum cliente cadastrado ainda.")
 
+    # ==================== Resumo Produção ====================
     elif menu == "📊 Resumo de Produção":
         st.subheader("Resumo de Produção por Sabor")
         if not pedidos_df.empty:
@@ -82,10 +84,12 @@ if authentication_status:
         else:
             st.info("Nenhum pedido registrado ainda.")
 
+    # ==================== Clientes ====================
     elif menu == "👤 Clientes":
         st.subheader("Clientes Cadastrados")
         st.dataframe(clientes_df)
-        st.markdown("### Adicionar Novo Cliente")
+
+        st.markdown("### ➕ Adicionar Novo Cliente")
         novo_nome = st.text_input("Nome do Cliente")
         novo_endereco = st.text_input("Endereço")
         if st.button("Adicionar Cliente"):
@@ -97,6 +101,33 @@ if authentication_status:
             else:
                 st.warning("Preencha todos os campos.")
 
+        st.markdown("---")
+        st.markdown("### ✏️ Editar ou Excluir Cliente")
+        if not clientes_df.empty:
+            cliente_sel = st.selectbox("Selecione um cliente", clientes_df["Nome"])
+            dados_cliente = clientes_df[clientes_df["Nome"] == cliente_sel].iloc[0]
+
+            nome_editado = st.text_input("Novo nome", value=dados_cliente["Nome"], key="editar_nome")
+            endereco_editado = st.text_input("Novo endereço", value=dados_cliente["Endereco"], key="editar_endereco")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("💾 Salvar Alterações"):
+                    index = clientes_df[clientes_df["Nome"] == cliente_sel].index[0]
+                    clientes_df.at[index, "Nome"] = nome_editado
+                    clientes_df.at[index, "Endereco"] = endereco_editado
+                    clientes_df.to_csv(CSV_CLIENTES, index=False)
+                    st.success("Cliente atualizado com sucesso!")
+
+            with col2:
+                if st.button("🗑️ Excluir Cliente"):
+                    clientes_df = clientes_df[clientes_df["Nome"] != cliente_sel]
+                    clientes_df.to_csv(CSV_CLIENTES, index=False)
+                    st.success("Cliente excluído com sucesso!")
+        else:
+            st.info("Nenhum cliente cadastrado.")
+
+    # ==================== Sabores ====================
     elif menu == "🍽️ Sabores":
         st.subheader("Sabores Disponíveis")
         st.dataframe(sabores_df)
@@ -109,6 +140,7 @@ if authentication_status:
             else:
                 st.warning("Informe o nome do sabor.")
 
+    # ==================== Pagamentos ====================
     elif menu == "💰 Pagamentos":
         st.subheader("Controle de Pagamentos e Entregas")
         if not pedidos_df.empty:
@@ -124,6 +156,7 @@ if authentication_status:
         else:
             st.info("Nenhum pedido registrado ainda.")
 
+# ==================== Mensagens de erro login ====================
 elif authentication_status is False:
     st.error("Nome de usuário ou senha incorretos.")
 elif authentication_status is None:
