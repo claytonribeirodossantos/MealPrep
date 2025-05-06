@@ -95,7 +95,7 @@ if authentication_status:
                 st.warning("Todos os pedidos foram zerados.")
 
     # RESUMO
-        elif "Resumo de Produção" in menu:
+elif "Resumo de Produção" in menu:
         st.subheader("Resumo de Produção")
 
         if not pedidos_df.empty:
