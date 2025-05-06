@@ -31,8 +31,7 @@ usernames = ["admin"]
 passwords = ["senha123"]
 hashed_passwords = stauth.Hasher(passwords).generate()
 
-authenticator = stauth.Authenticate(names, usernames, hashed_passwords,
-                                    "meal_prep", "abcdef", cookie_expiry_days=30)
+authenticator = stauth.Authenticate(names, usernames, hashed_passwords, "meal_prep", "abcdef", cookie_expiry_days=30)
 name, authentication_status, username = authenticator.login("Login", "main")
 
 if authentication_status:
@@ -40,14 +39,17 @@ if authentication_status:
     authenticator.logout("Logout", "sidebar")
 
     # Logo e título
-    st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/1.jpeg", width=300)
-    st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/1.jpeg", width=100)
+    with col2:
+        st.markdown("<h1 style='color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
-    menu = st.sidebar.radio("Menu", ["Cadastrar Pedido", "Resumo de Produção", "Clientes", "Sabores", "Pagamentos"])
+    menu = st.sidebar.selectbox("\U0001F4C1 Navegação", ["📦 Cadastrar Pedido", "📊 Resumo de Produção", "👤 Clientes", "🍽️ Sabores", "💰 Pagamentos"])
 
     # PEDIDOS
-    if menu == "Cadastrar Pedido":
+    if "Cadastrar Pedido" in menu:
         st.subheader("Cadastrar Pedido")
         if not clientes_df.empty:
             cliente = st.selectbox("Cliente", clientes_df["Nome"])
@@ -68,7 +70,7 @@ if authentication_status:
             st.warning("Nenhum cliente cadastrado ainda.")
 
     # PRODUÇÃO
-    elif menu == "Resumo de Produção":
+    elif "Resumo de Produção" in menu:
         st.subheader("Resumo de Produção por Sabor")
         if not pedidos_df.empty:
             resumo = pedidos_df.groupby("Sabor")["Quantidade"].sum().reset_index()
@@ -77,7 +79,7 @@ if authentication_status:
             st.info("Nenhum pedido registrado ainda.")
 
     # CLIENTES
-    elif menu == "Clientes":
+    elif "Clientes" in menu:
         st.subheader("Clientes Cadastrados")
         st.dataframe(clientes_df)
 
@@ -94,7 +96,7 @@ if authentication_status:
                 st.warning("Preencha todos os campos.")
 
     # SABORES
-    elif menu == "Sabores":
+    elif "Sabores" in menu:
         st.subheader("Sabores Disponíveis")
         st.dataframe(sabores_df)
 
@@ -108,7 +110,7 @@ if authentication_status:
                 st.warning("Informe o nome do sabor.")
 
     # PAGAMENTOS
-    elif menu == "Pagamentos":
+    elif "Pagamentos" in menu:
         st.subheader("Controle de Pagamentos e Entregas")
         if not pedidos_df.empty:
             for i, row in pedidos_df.iterrows():
