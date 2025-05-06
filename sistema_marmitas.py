@@ -87,7 +87,7 @@ if authentication_status:
 
     # ==================== Clientes ====================
   
-                   elif menu == "👤 Clientes":
+    elif menu == "👤 Clientes":
         st.subheader("Clientes Cadastrados")
         st.dataframe(clientes_df)
 
