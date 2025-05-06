@@ -25,7 +25,7 @@ sabores_df = carregar_csv(CSV_SABORES, pd.DataFrame({"Sabor": [
     "Frango grelhado", "Feijoada", "Strogonoff de frango",
     "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"]}))
 
-# Credenciais do usuário (senha = senha123)
+# Credenciais (senha = senha123)
 credentials = {
     "usernames": {
         "admin": {
@@ -35,23 +35,18 @@ credentials = {
     }
 }
 
-# Criar autenticação
+# Login
 authenticator = stauth.Authenticate(
     credentials,
-    "meal_prep",
-    "abcdef",
-    cookie_expiry_days=30
+    "meal_prep", "abcdef", cookie_expiry_days=30
 )
-
-# Tela de login
 name, authentication_status, username = authenticator.login("Login", location="main")
 
-# Se logado com sucesso
 if authentication_status:
     st.sidebar.success(f"Bem-vindo(a), {name}!")
     authenticator.logout("Logout", "sidebar")
 
-    # Logo e título
+    # Cabeçalho
     col1, col2 = st.columns([1, 4])
     with col1:
         st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/1.jpeg", width=100)
@@ -82,7 +77,24 @@ if authentication_status:
         else:
             st.warning("Nenhum cliente cadastrado ainda.")
 
-    # RESUMO DE PRODUÇÃO
+        if not pedidos_df.empty:
+            st.subheader("Alterar Pedidos Existentes")
+            for i, row in pedidos_df.iterrows():
+                with st.expander(f"Pedido {i+1} - {row['Cliente']}"):
+                    pedidos_df.at[i, "Cliente"] = st.selectbox(f"Cliente", clientes_df["Nome"], index=clientes_df[clientes_df["Nome"] == row["Cliente"]].index[0], key=f"cliente_{i}")
+                    pedidos_df.at[i, "Sabor"] = st.selectbox(f"Sabor", sabores_df["Sabor"], index=sabores_df[sabores_df["Sabor"] == row["Sabor"]].index[0], key=f"sabor_{i}")
+                    pedidos_df.at[i, "Quantidade"] = st.number_input(f"Quantidade", min_value=1, step=1, value=int(row["Quantidade"]), key=f"quant_{i}")
+                    pedidos_df.at[i, "Data"] = st.date_input("Data da entrega", value=pd.to_datetime(row["Data"]), key=f"data_{i}")
+            if st.button("Salvar Alterações nos Pedidos"):
+                pedidos_df.to_csv(CSV_PEDIDOS, index=False)
+                st.success("Pedidos atualizados com sucesso!")
+
+            if st.button("Zerar todos os pedidos"):
+                pedidos_df = pd.DataFrame(columns=pedidos_df.columns)
+                pedidos_df.to_csv(CSV_PEDIDOS, index=False)
+                st.warning("Todos os pedidos foram zerados.")
+
+    # RESUMO
     elif "Resumo de Produção" in menu:
         st.subheader("Resumo de Produção por Cliente")
         if not pedidos_df.empty:
@@ -94,14 +106,17 @@ if authentication_status:
             st.dataframe(resumo_sabor)
 
             total_geral = pedidos_df["Quantidade"].sum()
-            st.success(f"**Total geral de marmitas produzidas: {total_geral}**")
+            st.success(f"**Total geral de marmitas: {total_geral}**")
         else:
             st.info("Nenhum pedido registrado ainda.")
 
     # CLIENTES
     elif "Clientes" in menu:
         st.subheader("Clientes Cadastrados")
-        st.dataframe(clientes_df)
+        if not clientes_df.empty:
+            clientes_df_display = clientes_df.copy()
+            clientes_df_display.index = clientes_df_display.index + 1
+            st.dataframe(clientes_df_display)
 
         st.markdown("### ➕ Adicionar Novo Cliente")
         novo_nome = st.text_input("Nome do Cliente")
@@ -143,13 +158,12 @@ if authentication_status:
                     pedidos_df.at[i, "Pago"] = pago
                     pedidos_df.at[i, "Entregue"] = entregue
 
-            if st.button("Salvar Alterações"):
+            if st.button("Salvar Alterações de Pagamento"):
                 pedidos_df.to_csv(CSV_PEDIDOS, index=False)
                 st.success("Alterações salvas com sucesso!")
         else:
             st.info("Nenhum pedido registrado ainda.")
 
-# Caso login falhe
 elif authentication_status is False:
     st.error("Nome de usuário ou senha incorretos.")
 elif authentication_status is None:
