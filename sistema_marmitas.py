@@ -84,48 +84,55 @@ if authentication_status:
         else:
             st.info("Nenhum pedido registrado ainda.")
 
-    # ==================== Clientes ====================
-    elif menu == "👤 Clientes":
-        st.subheader("Clientes Cadastrados")
-        st.dataframe(clientes_df)
+    # ============================ CLIENTES ============================
+elif "Clientes" in menu:
+    st.subheader("👤 Clientes Cadastrados")
 
-        st.markdown("### ➕ Adicionar Novo Cliente")
-        novo_nome = st.text_input("Nome do Cliente")
-        novo_endereco = st.text_input("Endereço")
-        if st.button("Adicionar Cliente"):
-            if novo_nome and novo_endereco:
-                novo_cliente = pd.DataFrame({"Nome": [novo_nome], "Endereco": [novo_endereco]})
-                clientes_df = pd.concat([clientes_df, novo_cliente], ignore_index=True)
-                clientes_df.to_csv(CSV_CLIENTES, index=False)
-                st.success("Cliente adicionado com sucesso!")
-            else:
-                st.warning("Preencha todos os campos.")
+    # Campo de busca
+    busca = st.text_input("🔍 Buscar cliente pelo nome")
 
-        st.markdown("---")
-        st.markdown("### ✏️ Editar ou Excluir Cliente")
-        if not clientes_df.empty:
-            cliente_sel = st.selectbox("Selecione um cliente", clientes_df["Nome"])
-            dados_cliente = clientes_df[clientes_df["Nome"] == cliente_sel].iloc[0]
+    if busca:
+        resultados = clientes_df[clientes_df["Nome"].str.contains(busca, case=False, na=False)]
 
-            nome_editado = st.text_input("Novo nome", value=dados_cliente["Nome"], key="editar_nome")
-            endereco_editado = st.text_input("Novo endereço", value=dados_cliente["Endereco"], key="editar_endereco")
+        if not resultados.empty:
+            for i, row in resultados.iterrows():
+                with st.expander(f"{row['Nome']} - {row['Endereco']}"):
+                    novo_nome = st.text_input("Editar Nome", value=row["Nome"], key=f"nome_{i}")
+                    novo_endereco = st.text_input("Editar Endereço", value=row["Endereco"], key=f"end_{i}")
 
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("💾 Salvar Alterações"):
-                    index = clientes_df[clientes_df["Nome"] == cliente_sel].index[0]
-                    clientes_df.at[index, "Nome"] = nome_editado
-                    clientes_df.at[index, "Endereco"] = endereco_editado
-                    clientes_df.to_csv(CSV_CLIENTES, index=False)
-                    st.success("Cliente atualizado com sucesso!")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("💾 Salvar Alterações", key=f"salvar_{i}"):
+                            clientes_df.at[i, "Nome"] = novo_nome
+                            clientes_df.at[i, "Endereco"] = novo_endereco
+                            clientes_df.to_csv(CSV_CLIENTES, index=False)
+                            st.success("Cliente atualizado com sucesso.")
+                            st.experimental_rerun()
 
-            with col2:
-                if st.button("🗑️ Excluir Cliente"):
-                    clientes_df = clientes_df[clientes_df["Nome"] != cliente_sel]
-                    clientes_df.to_csv(CSV_CLIENTES, index=False)
-                    st.success("Cliente excluído com sucesso!")
+                    with col2:
+                        if st.button("🗑️ Excluir Cliente", key=f"excluir_{i}"):
+                            clientes_df = clientes_df.drop(index=i).reset_index(drop=True)
+                            clientes_df.to_csv(CSV_CLIENTES, index=False)
+                            st.success("Cliente excluído com sucesso.")
+                            st.experimental_rerun()
         else:
-            st.info("Nenhum cliente cadastrado.")
+            st.warning("Nenhum cliente encontrado.")
+    else:
+        st.info("Digite um nome para buscar um cliente.")
+
+    st.markdown("---")
+    st.markdown("### ➕ Adicionar Novo Cliente")
+    novo_nome = st.text_input("Nome do Cliente")
+    novo_endereco = st.text_input("Endereço")
+    if st.button("Adicionar Cliente"):
+        if novo_nome and novo_endereco:
+            novo_cliente = pd.DataFrame({"Nome": [novo_nome], "Endereco": [novo_endereco]})
+            clientes_df = pd.concat([clientes_df, novo_cliente], ignore_index=True)
+            clientes_df.to_csv(CSV_CLIENTES, index=False)
+            st.success("Cliente adicionado com sucesso!")
+            st.experimental_rerun()
+        else:
+            st.warning("Preencha todos os campos.")
 
     # ==================== Sabores ====================
     elif menu == "🍽️ Sabores":
