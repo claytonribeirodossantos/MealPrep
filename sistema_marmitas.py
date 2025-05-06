@@ -1,3 +1,4 @@
+import requests
 import streamlit as st
 import pandas as pd
 from datetime import date
@@ -85,16 +86,34 @@ if authentication_status:
             st.info("Nenhum pedido registrado ainda.")
 
     # ==================== Clientes ====================
-    elif menu == "👤 Clientes":
+  
+                   elif menu == "👤 Clientes":
         st.subheader("Clientes Cadastrados")
         st.dataframe(clientes_df)
 
         st.markdown("### ➕ Adicionar Novo Cliente")
         novo_nome = st.text_input("Nome do Cliente")
-        novo_endereco = st.text_input("Endereço")
+        endereco_parcial = st.text_input("Endereço (digite o começo)")
+        sugestoes = []
+
+        # Buscar sugestões de endereço no Nominatim
+        if endereco_parcial:
+            try:
+                resposta = requests.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params={"q": endereco_parcial, "format": "json", "limit": 5},
+                    headers={"User-Agent": "MealPrepUSA"}
+                )
+                dados = resposta.json()
+                sugestoes = [item["display_name"] for item in dados]
+            except:
+                st.warning("Erro ao buscar sugestões de endereço.")
+
+        endereco_final = st.selectbox("Escolha um endereço sugerido", sugestoes) if sugestoes else ""
+
         if st.button("Adicionar Cliente"):
-            if novo_nome and novo_endereco:
-                novo_cliente = pd.DataFrame({"Nome": [novo_nome], "Endereco": [novo_endereco]})
+            if novo_nome and endereco_final:
+                novo_cliente = pd.DataFrame({"Nome": [novo_nome], "Endereco": [endereco_final]})
                 clientes_df = pd.concat([clientes_df, novo_cliente], ignore_index=True)
                 clientes_df.to_csv(CSV_CLIENTES, index=False)
                 st.success("Cliente adicionado com sucesso!")
@@ -126,6 +145,7 @@ if authentication_status:
                     st.success("Cliente excluído com sucesso!")
         else:
             st.info("Nenhum cliente cadastrado.")
+
 
     # ==================== Sabores ====================
     elif menu == "🍽️ Sabores":
