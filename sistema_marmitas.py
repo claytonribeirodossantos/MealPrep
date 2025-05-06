@@ -25,7 +25,10 @@ sabores_df = carregar_csv(CSV_SABORES, pd.DataFrame({"Sabor": [
     "Frango grelhado", "Feijoada", "Strogonoff de frango",
     "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"]}))
 
-# Autenticação
+import streamlit as st
+import streamlit_authenticator as stauth
+
+# Credenciais do usuário
 credentials = {
     "usernames": {
         "admin": {
@@ -35,6 +38,7 @@ credentials = {
     }
 }
 
+# Criar autenticação
 authenticator = stauth.Authenticate(
     credentials,
     "meal_prep",  # nome do cookie
@@ -42,11 +46,24 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=30
 )
 
+# Exibir tela de login
 name, authentication_status, username = authenticator.login("Login")
 
-if authentication_status:
+# Verificação do login
+if authentication_status is False:
+    st.error("Nome de usuário ou senha incorretos.")
+
+elif authentication_status is None:
+    st.warning("Por favor, insira suas credenciais para continuar.")
+
+elif authentication_status:
     st.sidebar.success(f"Bem-vindo(a), {name}!")
     authenticator.logout("Logout", "sidebar")
+
+    # AQUI SEGUE O RESTANTE DO SEU CÓDIGO, por exemplo:
+    st.title("Sistema Meal Prep USA")
+    st.write("Você está logado com sucesso.")
+
 
     # Logo e título
     col1, col2 = st.columns([1, 4])
