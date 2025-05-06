@@ -26,9 +26,21 @@ sabores_df = carregar_csv(CSV_SABORES, pd.DataFrame({"Sabor": [
     "Strogonoff de carne", "Frango assado", "Salmão assado", "Tilápia assada"]}))
 
 # Autenticação
-names = ["Admin"]
-usernames = ["admin"]
-hashed_passwords = ['pbkdf2:sha256:260000$YQWRdj8GlQXV6u5j$6ed944aa7b2e2c529a91b8b75c1893a7f5c2e18cfb9d110d3c04d36044fbd4e7']
+credentials = {
+    "usernames": {
+        "admin": {
+            "name": "Admin",
+            "password": "pbkdf2:sha256:260000$YQWRdj8GlQXV6u5j$6ed944aa7b2e2c529a91b8b75c1893a7f5c2e18cfb9d110d3c04d36044fbd4e7"
+        }
+    }
+}
+
+authenticator = stauth.Authenticate(
+    credentials,
+    "meal_prep",  # nome do cookie
+    "abcdef",     # chave secreta
+    cookie_expiry_days=30
+)
 
 
 authenticator = stauth.Authenticate(names, usernames, hashed_passwords, "meal_prep", "abcdef", cookie_expiry_days=30)
