@@ -29,7 +29,7 @@ sabores_df = carregar_csv(CSV_SABORES, pd.DataFrame({"Sabor": [
 names = ["Admin"]
 usernames = ["admin"]
 passwords = ["senha123"]
-hashed_passwords = stauth.Hasher(passwords).generate()
+hashed_passwords = ['pbkdf2:sha256:260000$ZaIDk...']  # senha gerada previamente
 
 authenticator = stauth.Authenticate(names, usernames, hashed_passwords, "meal_prep", "abcdef", cookie_expiry_days=30)
 name, authentication_status, username = authenticator.login("Login", "main")
