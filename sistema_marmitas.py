@@ -36,17 +36,13 @@ credentials = {
 }
 
 # Login
-authenticator = stauth.Authenticate(
-    credentials,
-    "meal_prep", "abcdef", cookie_expiry_days=30
-)
+authenticator = stauth.Authenticate(credentials, "meal_prep", "abcdef", cookie_expiry_days=30)
 name, authentication_status, username = authenticator.login("Login", location="main")
 
 if authentication_status:
     st.sidebar.success(f"Bem-vindo(a), {name}!")
     authenticator.logout("Logout", "sidebar")
 
-    # Cabeçalho
     col1, col2 = st.columns([1, 4])
     with col1:
         st.image("https://raw.githubusercontent.com/claytonribeirodossantos/MealPrep/main/1.jpeg", width=100)
@@ -54,9 +50,8 @@ if authentication_status:
         st.markdown("<h1 style='color: #4CAF50;'>Sistema Interno de Gestão de Marmitas</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
-    menu = st.sidebar.selectbox("📁 Navegação", ["📦 Cadastrar Pedido", "📊 Resumo de Produção", "👤 Clientes", "🍽️ Sabores", "💰 Pagamentos"])
+    menu = st.sidebar.selectbox("\U0001F4C1 Navegação", ["\U0001F4E6 Cadastrar Pedido", "\U0001F4CA Resumo de Produção", "\U0001F464 Clientes", "\U0001F37D️ Sabores", "\U0001F4B0 Pagamentos"])
 
-    # PEDIDOS
     if "Cadastrar Pedido" in menu:
         st.subheader("Cadastrar Pedido")
         if not clientes_df.empty:
@@ -85,7 +80,7 @@ if authentication_status:
                     pedidos_df.at[i, "Sabor"] = st.selectbox("Sabor", sabores_df["Sabor"], index=sabores_df[sabores_df["Sabor"] == row["Sabor"]].index[0], key=f"sabor_{i}")
                     pedidos_df.at[i, "Quantidade"] = st.number_input("Quantidade", min_value=1, step=1, value=int(row["Quantidade"]), key=f"quant_{i}")
                     pedidos_df.at[i, "Data"] = st.date_input("Data da entrega", value=pd.to_datetime(row["Data"]), key=f"data_{i}")
-            if st.button("Salvar Alterações nos Pedidos"):
+            if st.button("Salvar Alteracoes nos Pedidos"):
                 pedidos_df.to_csv(CSV_PEDIDOS, index=False)
                 st.success("Pedidos atualizados com sucesso!")
 
@@ -94,28 +89,22 @@ if authentication_status:
                 pedidos_df.to_csv(CSV_PEDIDOS, index=False)
                 st.warning("Todos os pedidos foram zerados.")
 
-    # RESUMO
     elif "Resumo de Produção" in menu:
         st.subheader("Resumo de Produção")
-
         if not pedidos_df.empty:
             col1, col2 = st.columns(2)
-
-            # Resumo por Cliente com sabores
             with col1:
-                st.markdown("### 📌 Por Cliente")
-                resumo_cliente = pedidos_df.groupby("Cliente").agg({"Quantidade": "sum"}).reset_index()
-                sabores_por_cliente = pedidos_df.groupby("Cliente")["Sabor"].apply(lambda x: ', '.join(sorted(set(x)))).reset_index()
-                resumo_cliente = pd.merge(resumo_cliente, sabores_por_cliente, on="Cliente")
-                resumo_cliente.columns = ["Cliente", "Quantidade", "Sabores"]
-                st.dataframe(resumo_cliente, use_container_width=True)
+                st.markdown("### \U0001F4CC Por Cliente")
+                resumo_cliente = pedidos_df.groupby(["Cliente", "Sabor"])["Quantidade"].sum().reset_index()
+                resumo_total = resumo_cliente.groupby("Cliente")["Quantidade"].sum().reset_index(name="Total")
+                sabores_por_cliente = resumo_cliente.groupby("Cliente").apply(lambda x: ', '.join(f"{row['Sabor']} ({row['Quantidade']})" for _, row in x.iterrows())).reset_index(name="Sabores")
+                final_df = pd.merge(resumo_total, sabores_por_cliente, on="Cliente")
+                st.dataframe(final_df[["Cliente", "Total", "Sabores"]])
 
-            # Resumo por Sabor sem index
             with col2:
-                st.markdown("### 🍽️ Por Sabor")
+                st.markdown("### \U0001F37D Por Sabor")
                 resumo_sabor = pedidos_df.groupby("Sabor")["Quantidade"].sum().reset_index()
-                resumo_sabor = resumo_sabor.sort_values("Quantidade", ascending=False).reset_index(drop=True)
-                st.dataframe(resumo_sabor, use_container_width=True)
+                st.dataframe(resumo_sabor)
 
             total_geral = pedidos_df["Quantidade"].sum()
             st.markdown("---")
@@ -123,30 +112,23 @@ if authentication_status:
         else:
             st.info("Nenhum pedido registrado ainda.")
 
-    # CLIENTES
     elif "Clientes" in menu:
         st.subheader("Clientes Cadastrados")
         if not clientes_df.empty:
-            clientes_df_display = clientes_df.copy()
-            clientes_df_display.index = clientes_df_display.index + 1
-            st.dataframe(clientes_df_display)
+            st.dataframe(clientes_df.reset_index(drop=True))
 
         st.markdown("### ➕ Adicionar Novo Cliente")
         novo_nome = st.text_input("Nome do Cliente")
         novo_endereco = st.text_input("Endereço (opcional)")
         if st.button("Adicionar Cliente"):
             if novo_nome:
-                novo_cliente = pd.DataFrame({
-                    "Nome": [novo_nome],
-                    "Endereco": [novo_endereco if novo_endereco else ""]
-                })
+                novo_cliente = pd.DataFrame({"Nome": [novo_nome], "Endereco": [novo_endereco if novo_endereco else ""]})
                 clientes_df = pd.concat([clientes_df, novo_cliente], ignore_index=True)
                 clientes_df.to_csv(CSV_CLIENTES, index=False)
                 st.success("Cliente adicionado com sucesso!")
             else:
                 st.warning("Informe ao menos o nome do cliente.")
 
-    # SABORES
     elif "Sabores" in menu:
         st.subheader("Sabores Disponíveis")
         st.dataframe(sabores_df)
@@ -160,7 +142,6 @@ if authentication_status:
             else:
                 st.warning("Informe o nome do sabor.")
 
-    # PAGAMENTOS
     elif "Pagamentos" in menu:
         st.subheader("Controle de Pagamentos e Entregas")
         if not pedidos_df.empty:
@@ -170,7 +151,6 @@ if authentication_status:
                     entregue = st.checkbox("Entregue?", value=row["Entregue"], key=f"entregue_{i}")
                     pedidos_df.at[i, "Pago"] = pago
                     pedidos_df.at[i, "Entregue"] = entregue
-
             if st.button("Salvar Alterações de Pagamento"):
                 pedidos_df.to_csv(CSV_PEDIDOS, index=False)
                 st.success("Alterações salvas com sucesso!")
